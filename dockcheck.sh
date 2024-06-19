@@ -274,6 +274,33 @@ if [[ -n ${GotErrors[*]} ]] ; then
   printf "%binfo:%b 'unauthorized' often means not found in a public registry.\n" "$c_blue" "$c_reset"
 fi
 if [[ -n ${GotUpdates[*]} ]] ; then 
+
+# This will eventually be shifted to the end of the script. It's here now for testing purposes
+   cat << endoffile > "./last_updates.sh"
+$(printf "%s " "${GotUpdates[@]}")
+endoffile
+
+   LastUpdates=($(cat ./last_updates.sh))
+   if [[ "${LastUpdates[@]}" == "${GotUpdates[@]}" ]]; then
+    echo "they're the same picture"
+    # at this point set skipnotifs to true, then make the notification process stop.
+    # or change the existing notification variable to an empty string
+   else
+   # Loop through each update in GotUpdates and see if it exists in last update.
+   # If it doesn't, add that to the NewUpdates array
+    for currUpdate in "${GotUpdates[@]}"
+     do
+       for lastUpdate in "${LastUpdates[@]}"
+       do
+         if [$currUpdate == $lastUpdate]; then 
+           echo "Moves on to the next update in GotUpdates"
+         fi
+       done
+      #  Only runs if the currUpdate wasn't present in LastUpdates
+      echo "NewUpdates =+ $currUpdate"
+      # Then highlight the new update in the got updates array, or remove it from the got updates to use the new array instead.
+     done
+   fi
    printf "\n%bContainers with updates available:%b\n" "$c_yellow" "$c_reset"
    [[ -z "$AutoUp" ]] && options || printf "%s\n" "${GotUpdates[@]}"
    [[ -n "$Notify" ]] && { [[ $(type -t send_notification) == function ]] && send_notification "${GotUpdates[@]}" || printf "Could not source notification function.\n" ; }
