@@ -275,31 +275,43 @@ if [[ -n ${GotErrors[*]} ]] ; then
 fi
 if [[ -n ${GotUpdates[*]} ]] ; then 
 
-# This will eventually be shifted to the end of the script. It's here now for testing purposes
-   cat << endoffile > "./last_updates.sh"
-$(printf "%s " "${GotUpdates[@]}")
-endoffile
-
+# Disabling this for now during development. Manually edit the file for each scenario.
+#    cat << endoffile > "./last_updates.sh"
+# $(printf "%s " "${GotUpdates[@]}")
+# endoffile
    LastUpdates=($(cat ./last_updates.sh))
    if [[ "${LastUpdates[@]}" == "${GotUpdates[@]}" ]]; then
-    echo "they're the same picture"
-    # at this point set skipnotifs to true, then make the notification process stop.
-    # or change the existing notification variable to an empty string
+      Notify=""
    else
-   # Loop through each update in GotUpdates and see if it exists in last update.
+   # Loop through each update in GotUpdates and see if it exists in LastUpdates
    # If it doesn't, add that to the NewUpdates array
     for currUpdate in "${GotUpdates[@]}"
      do
+       IsNewUpdate=true # setting this here to avoid weird behaviour below
        for lastUpdate in "${LastUpdates[@]}"
        do
-         if [$currUpdate == $lastUpdate]; then 
-           echo "Moves on to the next update in GotUpdates"
+         if [[ $currUpdate == $lastUpdate ]]; then 
+           IsNewUpdate=false
+           # Move on to the next update in GotUpdates
+           break
          fi
        done
-      #  Only runs if the currUpdate wasn't present in LastUpdates
-      echo "NewUpdates =+ $currUpdate"
-      # Then highlight the new update in the got updates array, or remove it from the got updates to use the new array instead.
+      echo $OldUpdate
+      if [ "$IsNewUpdate" == true ]; then
+        NewUpdates+=$currUpdate
+      fi
+        # Then highlight the new update in the got updates array, or remove it from the got updates to use the new array instead.
      done
+   fi
+   echo "New Updates, if they exist:"
+   echo $NewUpdates
+   # If notifications aren't enabled, but there's new updates, this will still say there's no new updates.
+   # This will be fixed once I have a proper highlighting method.
+   if [[ -n "$Notify" ]]; then
+    echo "Keeping notifications on as new updates were detected"
+    echo "Notify is set to $Notify"
+   else
+    echo "No new updates detected, skipping notifications"
    fi
    printf "\n%bContainers with updates available:%b\n" "$c_yellow" "$c_reset"
    [[ -z "$AutoUp" ]] && options || printf "%s\n" "${GotUpdates[@]}"
